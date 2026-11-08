@@ -89,6 +89,7 @@ target_link_libraries(open_spiel_games_all_games INTERFACE
   open_spiel::games::pig::pig
   open_spiel::games::quoridor::quoridor
   open_spiel::games::rbc::rbc
+  open_spiel::games::schnaps::schnaps
   open_spiel::games::sheriff::sheriff
   open_spiel::games::shogi::shogi
   open_spiel::games::skat::skat
@@ -202,6 +203,7 @@ add_subdirectory(pokerkit_wrapper)
 add_subdirectory(quoridor)
 add_subdirectory(rbc)
 add_subdirectory(repeated_pokerkit)
+add_subdirectory(schnaps)
 add_subdirectory(sheriff)
 add_subdirectory(shogi)
 add_subdirectory(skat)

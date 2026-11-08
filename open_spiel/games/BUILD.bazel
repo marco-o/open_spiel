@@ -112,6 +112,7 @@ cc_library(
         "//open_spiel/games/pig",
         "//open_spiel/games/quoridor",
         "//open_spiel/games/rbc",
+        "//open_spiel/games/schnaps",
         "//open_spiel/games/sheriff",
         "//open_spiel/games/shogi",
         "//open_spiel/games/skat",

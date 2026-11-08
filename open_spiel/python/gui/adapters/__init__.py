@@ -33,6 +33,7 @@ from open_spiel.python.gui.adapters import gin_rummy_adapter
 from open_spiel.python.gui.adapters import hearts_adapter
 from open_spiel.python.gui.adapters import kuhn_poker_adapter
 from open_spiel.python.gui.adapters import leduc_poker_adapter
+from open_spiel.python.gui.adapters import schnaps_adapter
 from open_spiel.python.gui.adapters import tic_tac_toe_adapter
 
 # Every adapter module. Add a game's module with one line, in name order.
@@ -45,6 +46,7 @@ _MODULES = [
     hearts_adapter,
     kuhn_poker_adapter,
     leduc_poker_adapter,
+    schnaps_adapter,
     tic_tac_toe_adapter,
 ]
 

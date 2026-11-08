@@ -19,6 +19,7 @@ pytype_strict_library(
         ":hearts_adapter",
         ":kuhn_poker_adapter",
         ":leduc_poker_adapter",
+        ":schnaps_adapter",
         ":tic_tac_toe_adapter",
         "//open_spiel/python/gui:adapter",
     ],
@@ -252,6 +253,27 @@ pytype_strict_contrib_test(
         "//open_spiel/python/gui:plies",
         "//open_spiel/python/gui:presenters",
         "//open_spiel/python/gui:views",
+        "//open_spiel/python/pybind11:pyspiel",
+        "@py_deps//absl/testing:absltest",
+    ],
+)
+
+pytype_strict_library(
+    name = "schnaps_adapter",
+    srcs = ["schnaps_adapter.py"],
+    deps = [
+        "//open_spiel/python/gui:adapter",
+        "//open_spiel/python/gui:contract",
+        "//open_spiel/python/pybind11:pyspiel",
+    ],
+)
+
+pytype_strict_contrib_test(
+    name = "schnaps_adapter_test",
+    srcs = ["schnaps_adapter_test.py"],
+    deps = [
+        ":schnaps_adapter",
+        "//open_spiel/python/gui:adapter",
         "//open_spiel/python/pybind11:pyspiel",
         "@py_deps//absl/testing:absltest",
     ],

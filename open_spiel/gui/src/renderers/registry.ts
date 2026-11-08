@@ -24,6 +24,7 @@ import {EUCHRE_RENDERER} from '../games/euchre/euchre_renderer.tsx';
 import {GIN_RUMMY_RENDERER} from '../games/gin_rummy/gin_rummy_renderer.tsx';
 import {HEARTS_RENDERER} from '../games/hearts/hearts_renderer.tsx';
 import {POKER_RENDERER} from '../games/poker/poker_renderer.tsx';
+import {SCHNAPS_RENDERER} from '../games/schnaps/schnaps_renderer.tsx';
 import {TIC_TAC_TOE_RENDERER} from '../games/tic_tac_toe/tic_tac_toe_renderer.tsx';
 import {GridRenderer} from '../grid/grid_renderer.tsx';
 import type {SectionDefinition} from '../dock/panel_groups.ts';
@@ -44,6 +45,7 @@ const ENTRIES: readonly RendererEntry[] = [
   {name: 'grid', render: GridRenderer},
   HEARTS_RENDERER,
   POKER_RENDERER,
+  SCHNAPS_RENDERER,
   TIC_TAC_TOE_RENDERER,
 ];
 
