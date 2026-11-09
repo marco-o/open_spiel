@@ -960,6 +960,45 @@ def _euchre_game_check(pyspiel_game: Any) -> None:
 EUCHRE_PYSPIEL_PARAMS = {k: (False, True) for k in _EUCHRE_OPTIONS}
 
 
+_SCHNAPS_OPTIONS = {"max_flecks": 2}
+
+
+def _schnaps_options(kw: dict[str, Any]) -> dict[str, Any]:
+  """Checks schnaps's options.
+
+  Args:
+    kw: The options.
+
+  Returns:
+    The checked options.
+  """
+  # Lazy: the schnaps env needs the optional JAX games package.
+  from open_spiel.python.scale.envs import schnaps  # pylint: disable=g-import-not-at-top,import-outside-toplevel  # noqa: PLC0415
+
+  return schnaps.options_check(kw)
+
+
+def _schnaps_served(params: Mapping[str, Any]) -> dict[str, Any]:
+  """Schnaps's options of pyspiel params: its one pyspiel parameter.
+
+  Args:
+    params: The pyspiel params.
+
+  Returns:
+    The env options.
+  """
+  return {
+      k: int(params.get(k, v)) for k, v in _SCHNAPS_OPTIONS.items()
+  }
+
+
+# Schnaps is served at every max_flecks pyspiel accepts (0..6): the engine is
+# checked move for move against pyspiel at three of them
+# (open_spiel/python/jax/games/schnaps_test.py, envs/tests/schnaps_test.py).
+# An artifact still plays only the variant it was trained on (covers None).
+SCHNAPS_PYSPIEL_PARAMS = {"max_flecks": tuple(range(7))}
+
+
 def _kuhn_nplayer_options(kw: dict[str, Any]) -> dict[str, Any]:
   """Checks kuhn_nplayer's options.
 
@@ -1249,6 +1288,19 @@ BUILTIN = (
             EUCHRE_PYSPIEL_PARAMS,
             served_kwargs=_euchre_served,
             game_check=_euchre_game_check,
+        ),
+    ),
+    # Schnaps (Bauernschnapsen): two partnerships (envs.schnaps), OpenSpiel's
+    # schnaps; the option is its game parameter max_flecks, and a pyspiel
+    # history is the env's raw history (same chance and action ids). Served
+    # at every max_flecks. Its rules identity is declared by the env.
+    GameSpec(
+        "schnaps",
+        f"{_ENVS}.schnaps:SchnapsEnv",
+        default_kwargs=_SCHNAPS_OPTIONS,
+        normalize_options=_schnaps_options,
+        serving=_served(
+            SCHNAPS_PYSPIEL_PARAMS, served_kwargs=_schnaps_served
         ),
     ),
     # N-player test games, self-contained JAX (no game package); not served.

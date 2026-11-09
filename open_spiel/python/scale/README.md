@@ -80,6 +80,7 @@ The named configs (`configs/`; train one with
 | `gin_mmd_from_scratch` | MMD self-play from scratch on Oklahoma gin rummy (recipe of the pretrained checkpoint below) |
 | `hearts_move_transformer_self_play` | four-seat self-play on hearts with the card move transformer and the `ppo_magnet` loss ("Train and play hearts and euchre" below) |
 | `euchre_move_transformer_self_play` | the same recipe on euchre |
+| `schnaps_move_transformer_self_play` | the same recipe on schnaps (Bauernschnapsen), with a smaller network |
 | `ppo_tic_tac_toe` | PPO against a uniform-random seat on tic-tac-toe |
 | `az_connect_four` | AlphaZero on Connect Four |
 | `bc_connect_four` | behaviour cloning of a scripted Connect Four player |

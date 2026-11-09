@@ -344,6 +344,7 @@ py_library(
         ":hearts",
         ":lines_of_action",
         ":nplayer_matrix",
+        ":schnaps",
         ":stub",
         "//open_spiel/python/scale:deps",
         "//open_spiel/python/scale:registry",
@@ -1250,4 +1251,41 @@ filegroup(
         "//open_spiel/python/scale/envs/leduc:all_files",
     ],
     visibility = ["//open_spiel/python/scale:__subpackages__"],
+)
+
+py_library(
+    name = "schnaps",
+    srcs = ["schnaps.py"],
+    strict_deps = True,
+    deps = [
+        ":jax_game_env",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale/core:sides",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_test.py"],
+    deps = [
+        ":registry",
+        ":schnaps",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/pybind11:pyspiel",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/core:sides",
+        "//open_spiel/python/scale/encoders:registry",
+        "//open_spiel/python/scale/encoders:schnaps",
+        "//open_spiel/python/scale/testing:check_env",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
 )

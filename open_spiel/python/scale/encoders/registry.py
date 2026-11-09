@@ -77,6 +77,7 @@ _BUILTIN_MODULES = tuple(
         "bridge",
         "hearts",
         "euchre",
+        "schnaps",
         "kuhn_nplayer",
         "nplayer_matrix",
     )
@@ -85,7 +86,11 @@ _BUILTIN_MODULES = tuple(
 #: of that name only.
 LAZY = {
     name: f"{__name__.rpartition('.')[0]}.{name}"
-    for name in ("hearts_card_planes", "euchre_card_planes")
+    for name in (
+        "hearts_card_planes",
+        "euchre_card_planes",
+        "schnaps_card_planes",
+    )
 }
 OPTIONAL_DEPS = (deps.GAMES_PACKAGE, deps.PYSPIEL)
 

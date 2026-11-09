@@ -44,6 +44,7 @@ SHIPPED = {
     "euchre_mmd_from_scratch": ("pg", "euchre"),
     "hearts_move_transformer_self_play": ("pg", "hearts"),
     "euchre_move_transformer_self_play": ("pg", "euchre"),
+    "schnaps_move_transformer_self_play": ("pg", "schnaps"),
 }
 
 #: Shipped configs whose metadata records the rules get_config checked.

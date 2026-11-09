@@ -608,6 +608,10 @@ def with_options(
 #: D = 384 (head dim 48), FFN 4D.
 BASE_MODEL = dict(depth=8, embed_dim_per_head_over8=6, n_head=8, ff_factor=4)
 
+#: The smaller model block of schnaps (20 cards, five tricks): depth 6, 8
+#: heads, D = 256 (head dim 32), FFN 4D.
+SCHNAPS_MODEL = dict(depth=6, embed_dim_per_head_over8=4, n_head=8, ff_factor=4)
+
 #: Named networks (catalog.register at import), bf16 compute, f32 params,
 #: cuDNN attention on a GPU ("auto"): the card move transformer (BASE_MODEL)
 #:   hearts: over the hearts card planes [56, 52] (encoders.
@@ -616,6 +620,10 @@ BASE_MODEL = dict(depth=8, embed_dim_per_head_over8=6, n_head=8, ff_factor=4)
 #:     euchre_card_planes), 24 card moves then 7 special moves (pass, the four
 #:     suits, alone, with partner: envs.euchre's action ids 24..30);
 #:     14,530,561 params.
+#:   schnaps: SCHNAPS_MODEL (depth 6, 8 heads, D = 256, FFN 4D) over the
+#:     schnaps card planes [70, 20] (encoders.schnaps_card_planes), 20 card
+#:     moves then 19 special moves (8 declarations, 4 trump suits, pass,
+#:     fleck, 5 calls: envs.schnaps's action ids 20..38).
 NAMED = {
     "hearts_card_move_transformer_bf16": card_move_transformer(
         **BASE_MODEL,
@@ -630,6 +638,14 @@ NAMED = {
         in_channels=64,
         n_card=24,
         n_special_action=7,
+        compute_dtype="bfloat16",
+        attention="auto",
+    ),
+    "schnaps_card_move_transformer_bf16": card_move_transformer(
+        **SCHNAPS_MODEL,
+        in_channels=70,
+        n_card=20,
+        n_special_action=19,
         compute_dtype="bfloat16",
         attention="auto",
     ),

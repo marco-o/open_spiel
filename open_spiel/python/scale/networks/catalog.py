@@ -208,6 +208,7 @@ LAZY = {
     for name in (
         "hearts_card_move_transformer_bf16",
         "euchre_card_move_transformer_bf16",
+        "schnaps_card_move_transformer_bf16",
     )
 }
 

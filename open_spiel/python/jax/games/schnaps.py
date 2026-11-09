@@ -295,41 +295,62 @@ def declared_card(action):
   return (index // 2) * NUM_RANKS + jnp.where(index % 2 == 0, KOENIG, OBER)
 
 
-def info_state_tensor(state: GameState, seat, max_flecks: int) -> jax.Array:
-  """The information-state tensor of `seat` (module doc).
+def info_state_tensor(
+    *,
+    seat,
+    phase,
+    first_cards,
+    dealt,
+    hand,
+    trump,
+    team_score,
+    pending,
+    team_tricks,
+    bids,
+    plays,
+    declared,
+) -> jax.Array:
+  """The information-state tensor of one seat (module doc).
 
   Args:
-    state: The state.
     seat: The observing seat.
-    max_flecks: The game parameter (it sets the number of bid slots).
+    phase: The phase.
+    first_cards: bool[20], the Caller's first three cards; read only in seat
+      0's view.
+    dealt: bool[20], the cards dealt to the seat.
+    hand: bool[20], the cards it holds now.
+    trump: The trump suit, -1 before it is chosen.
+    team_score: int[2], each team's points.
+    pending: int[2], each team's declarations awaiting its first trick.
+    team_tricks: int[2], each team's tricks.
+    bids: int[max_bids], each bid as action - PASS_ACTION (-1 pad); its
+      length sets the bid slots.
+    plays: int[20], the cards in order of play (-1 pad).
+    declared: bool[20], whether each was led with a declaration.
 
   Returns:
     f32[info_state_size(max_flecks)].
   """
   f32 = jnp.float32
   seat = _i32(seat)
-  dealt = state.holder == seat
-  team_score = _i32(state.team_score).astype(f32) / WINNING_POINTS
-  pending = _i32(state.pending).astype(f32) / WINNING_POINTS
-  tricks = _i32(state.team_tricks).astype(f32) / NUM_TRICKS
   plays = jnp.concatenate(
       [
-          jax.nn.one_hot(_i32(state.plays), NUM_CARDS, dtype=f32),
-          state.declared.astype(f32)[:, None],
+          jax.nn.one_hot(_i32(plays), NUM_CARDS, dtype=f32),
+          jnp.asarray(declared).astype(f32)[:, None],
       ],
       axis=1,
   )
   return jnp.concatenate([
       jax.nn.one_hot(seat, NUM_PLAYERS, dtype=f32),
-      jax.nn.one_hot(_i32(state.phase), NUM_PHASES, dtype=f32),
-      (state.first_cards & (seat == 0)).astype(f32),
-      dealt.astype(f32),
-      (dealt & ~state.played).astype(f32),
-      jax.nn.one_hot(_i32(state.trump), NUM_SUITS, dtype=f32),
-      team_score,
-      pending,
-      tricks,
-      jax.nn.one_hot(_i32(state.bids), NUM_BID_KINDS, dtype=f32).reshape(-1),
+      jax.nn.one_hot(_i32(phase), NUM_PHASES, dtype=f32),
+      (jnp.asarray(first_cards) & (seat == 0)).astype(f32),
+      jnp.asarray(dealt).astype(f32),
+      jnp.asarray(hand).astype(f32),
+      jax.nn.one_hot(_i32(trump), NUM_SUITS, dtype=f32),
+      _i32(team_score).astype(f32) / WINNING_POINTS,
+      _i32(pending).astype(f32) / WINNING_POINTS,
+      _i32(team_tricks).astype(f32) / NUM_TRICKS,
+      jax.nn.one_hot(_i32(bids), NUM_BID_KINDS, dtype=f32).reshape(-1),
       plays.reshape(-1),
   ])
 
@@ -615,7 +636,7 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
     )
     card = jnp.where(is_decl, declared_card(a), jnp.clip(a, 0, NUM_CARDS - 1))
     team = p % 2
-    decl_points = jnp.where(card_suit(card) == s.trump, 40, 20)
+    decl_points = _i32(jnp.where(card_suit(card) == s.trump, 40, 20))
     counts = s.team_tricks[team] > 0
     s1 = s._replace(
         team_score=jnp.where(
@@ -653,7 +674,7 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
     )
     winner = seats[jnp.argmax(key)]
     wteam = winner % 2
-    gained = jnp.sum(_rank_points()[ranks]) + s1.pending[wteam]
+    gained = _i32(jnp.sum(_rank_points()[ranks]) + s1.pending[wteam])
     taken = s2._replace(
         team_score=s1.team_score.at[wteam].add(gained),
         pending=s1.pending.at[wteam].set(0),
@@ -888,7 +909,21 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
     Returns:
       f32[info_state_size(max_flecks)].
     """
-    return info_state_tensor(state, observing_player, self.max_flecks)
+    dealt = state.holder == observing_player
+    return info_state_tensor(
+        seat=observing_player,
+        phase=state.phase,
+        first_cards=state.first_cards,
+        dealt=dealt,
+        hand=dealt & ~state.played,
+        trump=state.trump,
+        team_score=state.team_score,
+        pending=state.pending,
+        team_tricks=state.team_tricks,
+        bids=state.bids,
+        plays=state.plays,
+        declared=state.declared,
+    )
 
   def observation_tensor(
       self, state: GameState, observing_player: jax.Array

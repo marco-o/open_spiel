@@ -552,3 +552,48 @@ filegroup(
     ),
     visibility = ["//open_spiel/python/scale:__subpackages__"],
 )
+
+py_library(
+    name = "schnaps",
+    srcs = ["schnaps.py"],
+    strict_deps = True,
+    deps = [
+        ":registry",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale/envs:schnaps",
+        "@py_deps//jax",
+    ],
+)
+
+py_library(
+    name = "schnaps_card_planes",
+    srcs = ["schnaps_card_planes.py"],
+    strict_deps = True,
+    deps = [
+        ":registry",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale/envs:schnaps",
+        "@py_deps//jax",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_card_planes_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_card_planes_test.py"],
+    deps = [
+        ":registry",
+        ":schnaps_card_planes",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale:deps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/envs:schnaps",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)

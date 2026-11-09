@@ -440,3 +440,43 @@ filegroup(
     ),
     visibility = ["//open_spiel/python/scale:__subpackages__"],
 )
+
+py_library(
+    name = "schnaps_move_transformer_self_play",
+    srcs = ["schnaps_move_transformer_self_play.py"],
+    strict_deps = True,
+    deps = [
+        ":recipes",
+        "//open_spiel/python/scale/encoders:schnaps_card_planes",
+        "//open_spiel/python/scale/envs:schnaps",
+        "//open_spiel/python/scale/league:config_common",
+        "//open_spiel/python/scale/networks:card_move_transformer",
+        "//open_spiel/python/scale/networks:catalog",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_move_transformer_self_play_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_move_transformer_self_play_test.py"],
+    deps = [
+        ":schnaps_move_transformer_self_play",
+        "//open_spiel/python/scale:deps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale:train_lib",
+        "//open_spiel/python/scale/core:arena",
+        "//open_spiel/python/scale/encoders:schnaps_card_planes",
+        "//open_spiel/python/scale/envs:schnaps",
+        "//open_spiel/python/scale/league:config_common",
+        "//open_spiel/python/scale/learners:pg",
+        "//open_spiel/python/scale/networks:card_move_transformer",
+        "//open_spiel/python/scale/networks:catalog",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
