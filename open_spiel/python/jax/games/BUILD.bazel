@@ -359,8 +359,20 @@ py_library(
         ":othello",
         ":phantom_ttt",
         ":phantom_ttt_ir",
+        ":schnaps",
         ":tic_tac_toe",
         "//open_spiel/python/jax/games/gin_rummy",
+    ],
+)
+
+py_library(
+    name = "schnaps",
+    srcs = ["schnaps.py"],
+    strict_deps = True,
+    deps = [
+        ":game",
+        ":interop",
+        "@py_deps//jax",
     ],
 )
 
@@ -721,4 +733,24 @@ filegroup(
         "//open_spiel/python/jax/games/gin_rummy:all_files",
     ],
     visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "schnaps_test",
+    timeout = "long",
+    srcs = ["schnaps_test.py"],
+    data = ["//open_spiel/python/jax/games:all_files"],
+    tags = [
+        "manual",
+    ],
+    deps = [
+        ":game",
+        ":openspiel_equivalence",
+        ":registry",
+        ":schnaps",
+        "//open_spiel/python/pybind11:pyspiel",
+        "@py_deps//absl/testing:absltest",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
 )

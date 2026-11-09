@@ -53,6 +53,7 @@ _BUILTIN_GAMES = (
     ("othello", "othello", "Othello"),
     ("phantom_ttt", "phantom_ttt", "PhantomTicTacToe"),
     ("phantom_ttt_ir", "phantom_ttt_ir", "PhantomTicTacToeIR"),
+    ("schnaps", "schnaps", "Schnaps"),
     ("tic_tac_toe", "tic_tac_toe", "TicTacToe"),
 )
 
@@ -120,6 +121,8 @@ def load_game_module(module: str) -> types.ModuleType:
     from open_spiel.python.jax.games import phantom_ttt as mod
   elif module == "phantom_ttt_ir":
     from open_spiel.python.jax.games import phantom_ttt_ir as mod
+  elif module == "schnaps":
+    from open_spiel.python.jax.games import schnaps as mod
   elif module == "tic_tac_toe":
     from open_spiel.python.jax.games import tic_tac_toe as mod
   else:

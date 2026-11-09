@@ -22,6 +22,11 @@ reference implementation. Coverage, by game:
   defaults and every combination of its two parameters) through
   `run_playouts`, every field but the observation tensor (OpenSpiel's euchre
   has none), when the installed pyspiel is that build, and skips otherwise;
+- schnaps: every field but the tensors (OpenSpiel's schnaps has none), at the
+  default and two other `max_flecks`, in `schnaps_test.py`, from random deals
+  and from deals that make Jodler and Hermort callable; the same test checks
+  the JAX information-state tensor against OpenSpiel's information-state
+  string;
 - gin_rummy: not checked against released OpenSpiel (`NEEDS_REFERENCE_BUILD`
   in the test says why); `run_playouts` with a loader for an OpenSpiel build
   that has the same rules checks it.
