@@ -296,6 +296,62 @@ py_binary(
 )
 
 py_binary(
+    name = "schnaps_vs_elena",
+    srcs = ["schnaps_vs_elena.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale:runtime",
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/core:sequence",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/envs:registry",
+        "//open_spiel/python/scale/envs:schnaps_elena",
+        "//open_spiel/python/scale/eval:match",
+        "//open_spiel/python/scale/policies:uniform",
+        "@py_deps//jax",
+    ],
+)
+
+py_binary(
+    name = "schnaps_oracle_vs_elena",
+    srcs = ["schnaps_oracle_vs_elena.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/envs:schnaps_elena",
+        "//open_spiel/python/scale/envs:schnaps_oracle",
+        "//open_spiel/python/scale/envs:schnaps_search",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_binary(
+    name = "schnaps_forced_hands",
+    srcs = ["schnaps_forced_hands.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/envs:schnaps_forced",
+        "//open_spiel/python/scale/envs:schnaps_oracle",
+        "@py_deps//numpy",
+    ],
+)
+
+py_library(
+    name = "schnaps_relabel_checkpoint",
+    srcs = ["schnaps_relabel_checkpoint.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/configs:schnaps_forced_cpu",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/envs:registry",
+        "//open_spiel/python/scale/league:refs",
+        "@py_deps//jax",
+    ],
+)
+
+py_binary(
     name = "ppo_tic_tac_toe",
     srcs = ["ppo_tic_tac_toe.py"],
     strict_deps = True,

@@ -169,7 +169,7 @@ def _pyspiel_game(short_name):
 
 # -- names ---------------------------------------------------------------
 def test_builtins_serve_the_pyspiel_game_of_their_own_name(monkeypatch):
-  """Every builtin served env's pyspiel game is its own name."""
+  """Every builtin served env serves its own name, but the listed variants."""
   monkeypatch.setattr(
       env_registry,
       "_GAMES",
@@ -177,9 +177,13 @@ def test_builtins_serve_the_pyspiel_game_of_their_own_name(monkeypatch):
   )
   served = games.served_games()
   assert served
+  # The one builtin variant env: schnaps_normal plays schnaps(normal_only=true).
+  variants = {"schnaps_normal": "schnaps"}
   for name in served:
-    assert games.pyspiel_name(name) == name
-  assert games.served_pyspiel_games() == tuple(sorted(served))
+    assert games.pyspiel_name(name) == variants.get(name, name)
+  assert games.served_pyspiel_games() == tuple(
+      sorted({variants.get(n, n) for n in served})
+  )
 
 
 def test_pyspiel_name_and_served_pyspiel_games():

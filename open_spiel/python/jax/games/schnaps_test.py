@@ -210,6 +210,7 @@ class SchnapsEquivalenceTest(absltest.TestCase):
             _config("schnaps", 300),
             _config("schnaps(max_flecks=0)", 100),
             _config("schnaps(max_flecks=3)", 100),
+            _config("schnaps(normal_only=true)", 100),
         ],
     )
 

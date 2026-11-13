@@ -44,7 +44,8 @@ const GameType kGameType{
     /*provides_observation_string=*/true,
     /*provides_observation_tensor=*/false,
     /*parameter_specification=*/
-    {{"max_flecks", GameParameter(kDefaultMaxFlecks)}}};
+    {{"max_flecks", GameParameter(kDefaultMaxFlecks)},
+     {"normal_only", GameParameter(false)}}};
 
 std::shared_ptr<const Game> Factory(const GameParameters& params) {
   return std::make_shared<SchnapsGame>(params);
@@ -74,8 +75,9 @@ std::string CardString(int card) {
 // State
 // ---------------------------------------------------------------------------
 
-SchnapsState::SchnapsState(std::shared_ptr<const Game> game, int max_flecks)
-    : State(game), max_flecks_(max_flecks) {
+SchnapsState::SchnapsState(std::shared_ptr<const Game> game, int max_flecks,
+                           bool normal_only)
+    : State(game), max_flecks_(max_flecks), normal_only_(normal_only) {
   owner_.fill(-1);
   played_.fill(false);
 }
@@ -200,6 +202,8 @@ std::vector<std::pair<Action, double>> SchnapsState::ChanceOutcomes() const {
 std::vector<Action> SchnapsState::BiddingActions() const {
   const Player p = bidder_;
   std::vector<Action> actions = {kPassAction};
+  // The Normal-only variant: no flecks and no calls.
+  if (normal_only_) return actions;
   // Fleck: only against a call/fleck made by the opposing partnership.
   if (flecks_ < max_flecks_ && TeamOf(last_actor_) != TeamOf(p)) {
     actions.push_back(kFleckAction);
@@ -606,14 +610,15 @@ std::string SchnapsState::InformationStateString(Player player) const {
 
 SchnapsGame::SchnapsGame(const GameParameters& params)
     : Game(kGameType, params),
-      max_flecks_(ParameterValue<int>("max_flecks")) {
+      max_flecks_(ParameterValue<int>("max_flecks")),
+      normal_only_(ParameterValue<bool>("normal_only")) {
   SPIEL_CHECK_GE(max_flecks_, 0);
   SPIEL_CHECK_LE(max_flecks_, 6);
 }
 
 std::unique_ptr<State> SchnapsGame::NewInitialState() const {
   return std::unique_ptr<State>(new SchnapsState(shared_from_this(),
-                                                 max_flecks_));
+                                                 max_flecks_, normal_only_));
 }
 
 double SchnapsGame::MaxUtility() const {

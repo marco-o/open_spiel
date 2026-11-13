@@ -45,6 +45,11 @@ SHIPPED = {
     "hearts_move_transformer_self_play": ("pg", "hearts"),
     "euchre_move_transformer_self_play": ("pg", "euchre"),
     "schnaps_move_transformer_self_play": ("pg", "schnaps"),
+    "schnaps_move_transformer_cpu": ("pg", "schnaps"),
+    "schnaps_normal_cpu": ("pg", "schnaps_normal"),
+    "schnaps_forced_schnapser_cpu": ("pg", "schnaps_forced_schnapser"),
+    "schnaps_forced_lomt_cpu": ("pg", "schnaps_forced_lomt"),
+    "schnaps_forced_bauern_cpu": ("pg", "schnaps_forced_bauern"),
 }
 
 #: Shipped configs whose metadata records the rules get_config checked.

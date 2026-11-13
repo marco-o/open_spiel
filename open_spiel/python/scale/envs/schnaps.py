@@ -128,7 +128,10 @@ def rules_sha(options: Mapping[str, int]) -> str:
   Returns:
     The sha256 hex digest of RULES with the parameter, as canonical JSON.
   """
-  rules = {**RULES, "params": {k: int(options[k]) for k in OPTIONS}}
+  params = {k: int(options[k]) for k in OPTIONS}
+  if options.get("normal_only"):  # only when set: schnaps's hash is unchanged
+    params["normal_only"] = 1
+  rules = {**RULES, "params": params}
   return hashlib.sha256(
       json.dumps(rules, sort_keys=True, separators=(",", ":")).encode()
   ).hexdigest()
@@ -264,6 +267,38 @@ class SchnapsEnv(jax_game_env.JaxGameEnv):
     """
     del seat
     return {"deal_holder": s.holder.astype(jnp.int8)}
+
+
+class SchnapsNormalEnv(SchnapsEnv):
+  """Schnaps with the Normal game only: pass is the only bid.
+
+  OpenSpiel's schnaps(normal_only=true). The trump choice and the card play
+  are schnaps's; the bidding is four forced passes, so there are no flecks
+  and no called contracts. Its own env name, so its artifacts never mix with
+  full schnaps. No options. The InfoState, actions and sides are schnaps's
+  at its default max_flecks (the bid slots keep their size), so schnaps's
+  encoders and rule bots read it unchanged.
+  """
+
+  name = "schnaps_normal"
+
+  def __init__(self):  # pylint: disable=super-init-not-called
+    self.options = {}
+    self.max_len = decisions_bound(schnaps.DEFAULT_MAX_FLECKS)
+    jax_game_env.JaxGameEnv.__init__(
+        self,
+        schnaps.Schnaps(
+            max_flecks=schnaps.DEFAULT_MAX_FLECKS, normal_only=True
+        ),
+    )
+    assert self.num_players == NUM_PLAYERS and self.num_actions == NUM_ACTIONS
+
+  @property
+  def declared_rules_sha(self) -> str:
+    """The rules identity: schnaps's RULES with normal_only set."""
+    return rules_sha(
+        {"max_flecks": schnaps.DEFAULT_MAX_FLECKS, "normal_only": True}
+    )
 
 
 def hide_hidden_cards(

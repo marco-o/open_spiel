@@ -33,6 +33,8 @@
 // Parameters:
 //   max_flecks (int, default 2): max number of flecks (doublings) that can be
 //                                given to a single contract.
+//   normal_only (bool, default false): the bidding allows only passes, so
+//                                every deal is a Normal game.
 //
 // Returns are zero-sum: the winning partnership gets +value, the other -value,
 // where value = contract_points * 2^flecks.
@@ -111,7 +113,8 @@ struct PlayedCard {
 
 class SchnapsState : public State {
  public:
-  SchnapsState(std::shared_ptr<const Game> game, int max_flecks);
+  SchnapsState(std::shared_ptr<const Game> game, int max_flecks,
+               bool normal_only);
   SchnapsState(const SchnapsState&) = default;
 
   Player CurrentPlayer() const override;
@@ -156,6 +159,7 @@ class SchnapsState : public State {
   void FinishGame(int winning_team, int base_points);
 
   int max_flecks_;
+  bool normal_only_;
   Phase phase_ = Phase::kDealCaller;
 
   // owner_[card] = player holding it, or -1 if not dealt yet.
@@ -204,6 +208,7 @@ class SchnapsGame : public Game {
 
  private:
   int max_flecks_;
+  bool normal_only_;
 };
 
 }  // namespace schnaps

@@ -33,8 +33,10 @@ most ``max_flecks`` times per contract, only against the other partnership's
 last call or fleck; the Normal game counts as seat 0's) or calls a higher
 contract (Jodler needs a whole non-trump suit, Hermort the whole trump
 suit). A call resets the flecks. Bidding ends after three passes following
-the last call or fleck, or four passes with none. Jodler and Hermort win at
-once; otherwise seat 0 leads (the declarer in Lomt). Players follow suit
+the last call or fleck, or four passes with none. (With ``normal_only``, the
+second OpenSpiel parameter, pass is the only bid, so every deal is a Normal
+game.) Jodler and Hermort win at once; otherwise seat 0 leads (the declarer in
+Lomt). Players follow suit
 and must beat the led suit's best card unless a trump has been played; a
 player void in the led suit must trump, overtrumping when possible. Lomt is
 played without trump. A leader holding the Koenig and Ober of a suit may
@@ -358,7 +360,13 @@ def info_state_tensor(
 class Schnaps(game_lib.Game, interop.PyspielInterop):
   """OpenSpiel schnaps (module doc); the parameter is OpenSpiel's."""
 
-  def __init__(self, max_flecks: int = DEFAULT_MAX_FLECKS):
+  def __init__(
+      self, max_flecks: int = DEFAULT_MAX_FLECKS, normal_only: bool = False
+  ):
+    if not isinstance(normal_only, bool):
+      raise TypeError(
+          f"schnaps parameter normal_only must be a bool, got {normal_only!r}"
+      )
     if isinstance(max_flecks, bool) or not isinstance(max_flecks, int):
       raise TypeError(
           f"schnaps parameter max_flecks must be an int, got {max_flecks!r}"
@@ -369,7 +377,10 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
           f"got {max_flecks}"
       )
     self.params = {"max_flecks": max_flecks}
+    if normal_only:  # named only when set, as OpenSpiel game strings do
+      self.params["normal_only"] = True
     self.max_flecks = max_flecks
+    self.normal_only = bool(normal_only)
     self.max_bids = max_bids(max_flecks)
 
   @property
@@ -741,6 +752,8 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
     """
     p = s.current_player
     acts = jnp.arange(NUM_DISTINCT_ACTIONS)
+    if self.normal_only:  # the Normal-only variant: pass is the only bid
+      return acts == PASS_ACTION
     can_fleck = (_i32(s.flecks) < self.max_flecks) & (
         _i32(s.last_actor) % 2 != p % 2
     )

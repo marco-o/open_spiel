@@ -480,3 +480,107 @@ pytest_test(
         "@py_deps//numpy",
     ],
 )
+
+py_library(
+    name = "schnaps_move_transformer_cpu",
+    srcs = ["schnaps_move_transformer_cpu.py"],
+    strict_deps = True,
+    deps = [
+        ":recipes",
+        ":schnaps_move_transformer_self_play",
+        "//open_spiel/python/scale/encoders:schnaps_card_planes",
+        "//open_spiel/python/scale/envs:schnaps",
+        "//open_spiel/python/scale/envs:schnaps_elena",
+        "//open_spiel/python/scale/league:config_common",
+        "//open_spiel/python/scale/learners:ppo_magnet",
+        "//open_spiel/python/scale/networks:card_move_transformer",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_move_transformer_cpu_test",
+    data = ["//open_spiel/python/scale:all_files"],
+    tests = ["tests/schnaps_move_transformer_cpu_test.py"],
+    deps = [
+        ":schnaps_move_transformer_cpu",
+        ":schnaps_move_transformer_self_play",
+        "//open_spiel/python/scale:deps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/league:config_common",
+    ],
+)
+
+py_library(
+    name = "schnaps_normal_cpu",
+    srcs = ["schnaps_normal_cpu.py"],
+    strict_deps = True,
+    deps = [
+        ":recipes",
+        ":schnaps_move_transformer_cpu",
+        ":schnaps_move_transformer_self_play",
+        "//open_spiel/python/scale/encoders:schnaps_card_planes",
+        "//open_spiel/python/scale/envs:schnaps",
+        "//open_spiel/python/scale/envs:schnaps_elena",
+        "//open_spiel/python/scale/league:config_common",
+        "//open_spiel/python/scale/networks:card_move_transformer",
+    ],
+)
+
+py_library(
+    name = "schnaps_forced_cpu",
+    srcs = [
+        "schnaps_forced_bauern_cpu.py",
+        "schnaps_forced_cpu.py",
+        "schnaps_forced_lomt_cpu.py",
+        "schnaps_forced_schnapser_cpu.py",
+    ],
+    strict_deps = True,
+    deps = [
+        ":recipes",
+        ":schnaps_move_transformer_cpu",
+        ":schnaps_move_transformer_self_play",
+        "//open_spiel/python/scale/encoders:schnaps_card_planes",
+        "//open_spiel/python/scale/envs:schnaps",
+        "//open_spiel/python/scale/envs:schnaps_elena",
+        "//open_spiel/python/scale/envs:schnaps_forced",
+        "//open_spiel/python/scale/league:config_common",
+        "//open_spiel/python/scale/league:refs",
+        "//open_spiel/python/scale/learners:ppo_magnet",
+        "//open_spiel/python/scale/networks:card_move_transformer",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_forced_cpu_test",
+    data = ["//open_spiel/python/scale:all_files"],
+    tests = ["tests/schnaps_forced_cpu_test.py"],
+    deps = [
+        ":schnaps_forced_cpu",
+        ":schnaps_normal_cpu",
+        "//open_spiel/python/scale:deps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/examples:schnaps_relabel_checkpoint",
+        "//open_spiel/python/scale/league:config_common",
+        "@py_deps//jax",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_normal_cpu_test",
+    data = ["//open_spiel/python/scale:all_files"],
+    tests = ["tests/schnaps_normal_cpu_test.py"],
+    deps = [
+        ":schnaps_move_transformer_cpu",
+        ":schnaps_normal_cpu",
+        "//open_spiel/python/scale:deps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/envs:registry",
+        "//open_spiel/python/scale/league:config_common",
+        "@py_deps//jax",
+    ],
+)

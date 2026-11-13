@@ -531,6 +531,10 @@ def test_the_other_tables_are_views_of_the_registry():
       "bridge",
       "kuhn_nplayer",
       "nplayer_matrix",
+      # Forced-contract card-play envs: their networks never bid.
+      "schnaps_forced_schnapser",
+      "schnaps_forced_lomt",
+      "schnaps_forced_bauern",
   }
   assert set(games.served_games()) >= set(registry.builtin_names()) - unserved
   assert not unserved & set(games.served_games())

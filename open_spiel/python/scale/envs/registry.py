@@ -999,6 +999,23 @@ def _schnaps_served(params: Mapping[str, Any]) -> dict[str, Any]:
 SCHNAPS_PYSPIEL_PARAMS = {"max_flecks": tuple(range(7))}
 
 
+def _schnaps_normal_served(params: Mapping[str, Any]) -> dict[str, Any]:
+  """schnaps_normal's options of pyspiel params: none, normal_only required.
+
+  Args:
+    params: The pyspiel params.
+
+  Returns:
+    The env options ({}).
+
+  Raises:
+    ValueError: the game is not schnaps(normal_only=true).
+  """
+  if params.get("normal_only") is not True:
+    raise ValueError("schnaps_normal plays only schnaps(normal_only=true)")
+  return {}
+
+
 def _kuhn_nplayer_options(kw: dict[str, Any]) -> dict[str, Any]:
   """Checks kuhn_nplayer's options.
 
@@ -1299,9 +1316,38 @@ BUILTIN = (
         f"{_ENVS}.schnaps:SchnapsEnv",
         default_kwargs=_SCHNAPS_OPTIONS,
         normalize_options=_schnaps_options,
+        extras=(f"{_ENVS}.schnaps_elena",),
+        reference_evals=("schnaps.elena",),
         serving=_served(
             SCHNAPS_PYSPIEL_PARAMS, served_kwargs=_schnaps_served
         ),
+    ),
+    # Schnaps with the Normal game only (envs.schnaps SchnapsNormalEnv):
+    # pyspiel schnaps(normal_only=true), where pass is the only bid. Its own
+    # name, no options; max_flecks does not matter there (no fleck is legal).
+    GameSpec(
+        "schnaps_normal",
+        f"{_ENVS}.schnaps:SchnapsNormalEnv",
+        extras=(f"{_ENVS}.schnaps_elena",),
+        reference_evals=("schnaps_normal.elena",),
+        serving=_served(
+            {"normal_only": (True,), "max_flecks": ANY},
+            served_kwargs=_schnaps_normal_served,
+            pyspiel_game="schnaps",
+            pyspiel_params_of=lambda kw: {"normal_only": True},
+        ),
+    ),
+    # Schnaps with one contract forced (envs.schnaps_forced): every deal is a
+    # Schnapser, Lomt or Bauern whose declarer holds a plausible hand, for
+    # card-play training. No options; not served (the networks never bid).
+    *(
+        GameSpec(
+            f"schnaps_forced_{c}",
+            f"{_ENVS}.schnaps_forced:SchnapsForced{c.capitalize()}Env",
+            extras=(f"{_ENVS}.schnaps_elena",),
+            reference_evals=(f"schnaps_forced_{c}.elena",),
+        )
+        for c in ("schnapser", "lomt", "bauern")
     ),
     # N-player test games, self-contained JAX (no game package); not served.
     # Kuhn poker with `players` seats (OpenSpiel's kuhn_poker(players=N)),

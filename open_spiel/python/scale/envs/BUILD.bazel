@@ -1266,6 +1266,105 @@ py_library(
     ],
 )
 
+py_library(
+    name = "schnaps_forced",
+    srcs = ["schnaps_forced.py"],
+    data = ["schnaps_forced_hands.json"],
+    strict_deps = True,
+    deps = [
+        ":jax_game_env",
+        ":schnaps",
+        "//open_spiel/python/jax/games:game",
+        "//open_spiel/python/jax/games:schnaps",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_forced_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_forced_test.py"],
+    deps = [
+        ":registry",
+        ":schnaps_forced",
+        ":schnaps_oracle",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/testing:check_env",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_library(
+    name = "schnaps_elena",
+    srcs = ["schnaps_elena.py"],
+    strict_deps = True,
+    deps = [
+        ":schnaps",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale/core:sequence",
+        "//open_spiel/python/scale/eval:match",
+        "//open_spiel/python/scale/eval:registry",
+        "//open_spiel/python/scale/policies:fixed_action",
+        "//open_spiel/python/scale/policies:registry",
+        "@py_deps//jax",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_elena_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_elena_test.py"],
+    deps = [
+        ":schnaps",
+        ":schnaps_elena",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/core:sequence",
+        "//open_spiel/python/scale/eval:registry",
+        "//open_spiel/python/scale/policies:registry",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_library(
+    name = "schnaps_oracle",
+    srcs = ["schnaps_oracle.py"],
+    strict_deps = True,
+    deps = [
+        "@py_deps//numpy",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_oracle_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_oracle_test.py"],
+    deps = [
+        ":schnaps",
+        ":schnaps_oracle",
+        "//open_spiel/python/scale:tests_conftest",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
 pytest_test(
     name = "schnaps_test",
     timeout = "long",
@@ -1287,5 +1386,27 @@ pytest_test(
         "//open_spiel/python/scale/testing:check_env",
         "@py_deps//jax",
         "@py_deps//numpy",
+    ],
+)
+
+py_library(
+    name = "schnaps_search",
+    srcs = ["schnaps_search.py"],
+    strict_deps = True,
+    deps = [":schnaps_oracle"],
+)
+
+pytest_test(
+    name = "schnaps_search_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_search_test.py"],
+    deps = [
+        ":schnaps_oracle",
+        ":schnaps_search",
+        "//open_spiel/python/scale:tests_conftest",
     ],
 )
