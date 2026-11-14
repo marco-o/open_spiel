@@ -603,6 +603,14 @@ class SchnapsForcedBauernEnv(SchnapsForcedEnv):
   contract_name = "bauern"
 
 
+#: The env class of each forced contract.
+CONTRACT_ENVS = {
+    "schnapser": SchnapsForcedSchnapserEnv,
+    "lomt": SchnapsForcedLomtEnv,
+    "bauern": SchnapsForcedBauernEnv,
+}
+
+
 def hide_hidden_cards(env, s: ForcedState, seat, key) -> ForcedState:
   """Privacy hook: schnaps's, on the replayed state (envs.schnaps).
 
