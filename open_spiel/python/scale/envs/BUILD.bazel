@@ -1302,6 +1302,80 @@ pytest_test(
 )
 
 py_library(
+    name = "schnaps_bidding",
+    srcs = ["schnaps_bidding.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/jax/games:schnaps",
+        "@py_deps//jax",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_bidding_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_bidding_test.py"],
+    deps = [
+        ":schnaps",
+        ":schnaps_bidding",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/core:x64",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_library(
+    name = "schnaps_player",
+    srcs = ["schnaps_player.py"],
+    strict_deps = True,
+    deps = [
+        ":schnaps",
+        ":schnaps_bidding",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale/core:types",
+        "//open_spiel/python/scale/policies:fixed_action",
+        "//open_spiel/python/scale/policies:registry",
+        "@py_deps//jax",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_player_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_player_test.py"],
+    deps = [
+        ":registry",
+        ":schnaps",
+        ":schnaps_bidding",
+        ":schnaps_elena",
+        ":schnaps_player",
+        "//open_spiel/python/jax/games:schnaps",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/configs:schnaps_forced_cpu",
+        "//open_spiel/python/scale/configs:schnaps_normal_cpu",
+        "//open_spiel/python/scale/core:types",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/eval:match",
+        "//open_spiel/python/scale/examples:schnaps_build_player",
+        "//open_spiel/python/scale/league:refs",
+        "//open_spiel/python/scale/policies:registry",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_library(
     name = "schnaps_elena",
     srcs = ["schnaps_elena.py"],
     strict_deps = True,

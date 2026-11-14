@@ -351,6 +351,42 @@ py_library(
     ],
 )
 
+py_library(
+    name = "schnaps_build_player",
+    srcs = ["schnaps_build_player.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/envs:registry",
+        "//open_spiel/python/scale/envs:schnaps_player",
+    ],
+)
+
+py_binary(
+    name = "schnaps_forced_measure",
+    srcs = ["schnaps_forced_measure.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/core:types",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/envs:schnaps_forced",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_binary(
+    name = "schnaps_forced_report",
+    srcs = ["schnaps_forced_report.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/envs:schnaps_forced",
+        "@py_deps//numpy",
+    ],
+)
+
 py_binary(
     name = "ppo_tic_tac_toe",
     srcs = ["ppo_tic_tac_toe.py"],

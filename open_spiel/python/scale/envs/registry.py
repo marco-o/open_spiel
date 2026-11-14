@@ -996,7 +996,12 @@ def _schnaps_served(params: Mapping[str, Any]) -> dict[str, Any]:
 # checked move for move against pyspiel at three of them
 # (open_spiel/python/jax/games/schnaps_test.py, envs/tests/schnaps_test.py).
 # An artifact still plays only the variant it was trained on (covers None).
-SCHNAPS_PYSPIEL_PARAMS = {"max_flecks": tuple(range(7))}
+# normal_only=false is the full game this env plays (normal_only=true is
+# schnaps_normal's).
+SCHNAPS_PYSPIEL_PARAMS = {
+    "max_flecks": tuple(range(7)),
+    "normal_only": (False,),
+}
 
 
 def _schnaps_normal_served(params: Mapping[str, Any]) -> dict[str, Any]:
@@ -1316,7 +1321,7 @@ BUILTIN = (
         f"{_ENVS}.schnaps:SchnapsEnv",
         default_kwargs=_SCHNAPS_OPTIONS,
         normalize_options=_schnaps_options,
-        extras=(f"{_ENVS}.schnaps_elena",),
+        extras=(f"{_ENVS}.schnaps_elena", f"{_ENVS}.schnaps_player"),
         reference_evals=("schnaps.elena",),
         serving=_served(
             SCHNAPS_PYSPIEL_PARAMS, served_kwargs=_schnaps_served
