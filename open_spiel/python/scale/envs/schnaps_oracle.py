@@ -195,7 +195,8 @@ def _check_end(rules, score, tricks, n, last_winner, after_trick):
     t = team_of(rules.declarer)
     if score[t] >= WINNING_POINTS:
       return _contract_end(rules, t)
-    if after_trick and n == 3:
+    # A trick won by the other side, or the third trick, ends it.
+    if after_trick and (team_of(last_winner) != t or n == 3):
       return _contract_end(rules, 1 - t)
     return None
   if c in (LOMT, BAUERN):

@@ -46,6 +46,14 @@ export interface SchnapsContract {
   readonly flecks: number;
 }
 
+/** A 20 or 40 declared: who, in which suit, and the trick it led. */
+export interface SchnapsDeclaration {
+  readonly seat: number;
+  readonly suit: Suit;
+  readonly points: number;
+  readonly trick: number;
+}
+
 /** The stage of the deal. */
 export type SchnapsPhase = 'deal' | 'trump' | 'bidding' | 'play' | 'terminal';
 
@@ -63,6 +71,8 @@ export interface SchnapsView {
   readonly score: readonly number[];
   readonly tricks: readonly number[];
   readonly toMove: number | null;
+  /** Every 20 or 40 declared so far (empty from an older server). */
+  readonly declarations: readonly SchnapsDeclaration[];
 }
 
 const PHASES: readonly SchnapsPhase[] = [
@@ -119,6 +129,20 @@ function readIntegers(value: unknown, path: string): number[] {
   return array(value, path, integer);
 }
 
+function readDeclarations(view: unknown, path: string): SchnapsDeclaration[] {
+  if (typeof view !== 'object' || view === null || !('declarations' in view)) {
+    return [];
+  }
+  return field(view, path, 'declarations', (value, listPath) =>
+    array(value, listPath, (d, p) => ({
+      seat: field(d, p, 'seat', integer),
+      suit: field(d, p, 'suit', readSuit),
+      points: field(d, p, 'points', integer),
+      trick: field(d, p, 'trick', integer),
+    })),
+  );
+}
+
 /** The schnaps view of a presentation; throws naming a malformed field. */
 export function readSchnapsView(view: unknown): SchnapsView {
   const path = 'view';
@@ -145,6 +169,7 @@ export function readSchnapsView(view: unknown): SchnapsView {
     toMove: field(view, path, 'toMove', (value, movePath) =>
       nullable(value, movePath, integer),
     ),
+    declarations: readDeclarations(view, path),
   };
 }
 

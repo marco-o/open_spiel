@@ -218,5 +218,56 @@ def test_a_context_rule_plugs_in(env):
     bidding.make_rule("no_such_rule")
 
 
+def _after_opponent_bauern(env):
+  """Seat 2 to bid after seat 1's Bauern: (info [1], legal [1])."""
+  step, info_state, legal_mask, _ = _jitted(env)
+  s, _ = _to_bidding(env, 3)
+  key = jax.random.key(0)
+  s = step(s, jnp.int32(G.PASS_ACTION), key)
+  s = step(s, jnp.int32(bidding.call_action(G.BAUERN)), key)
+  info = _batch(info_state(s, 2))
+  legal = jnp.asarray(legal_mask(s))[None]
+  legal = legal & (jnp.arange(bidding.NUM_ACTIONS) < 37)  # no Jodler/Hermort
+  return info, legal
+
+
+def _with_need(info, our, their):
+  """Seat 2's info with the set situation (seat 2 is partnership 0)."""
+  return dict(info, set_need=jnp.asarray([[our, their]], jnp.int32))
+
+
+def _set_aware(info, legal, bauern_value):
+  est = bidding.estimate(
+      info, legal, _const_value_fn([0.0, 0.0, 0.0, bauern_value])
+  )
+  rule = bidding.make_rule("set_aware")
+  return int(rule.choose(_ctx(info, legal, est), None)[0])
+
+
+def test_set_aware_flecks_only_when_sure_without_a_set(env):
+  info, legal = _after_opponent_bauern(env)
+  # +4 for us: the declarer's chance 1/3, ours 2/3 < 0.75: no fleck.
+  assert _set_aware(info, legal, 4.0) == G.PASS_ACTION
+  # +8: ours 5/6: fleck.
+  assert _set_aware(info, legal, 8.0) == G.FLECK_ACTION
+
+
+def test_set_aware_flecks_when_it_cannot_cost_the_set(env):
+  info, legal = _after_opponent_bauern(env)
+  # They need 9 <= 12: a Bauern won ends the set for them anyway, so the
+  # fleck is free even though we are only 7/12 sure.
+  assert _set_aware(_with_need(info, 31, 9), legal, 2.0) == G.FLECK_ACTION
+  # Far from the end on both sides, the same estimate does not fleck.
+  assert _set_aware(_with_need(info, 31, 31), legal, 2.0) == G.PASS_ACTION
+
+
+def test_set_aware_does_not_fleck_close_to_the_end(env):
+  info, legal = _after_opponent_bauern(env)
+  # We need 3: winning more is worthless, losing 24 instead of 12 is not.
+  assert _set_aware(_with_need(info, 3, 20), legal, 8.0) == G.PASS_ACTION
+  rule = bidding.make_rule("set_aware", {"fleck_sure": 0.9})
+  assert rule.kwargs()["fleck_sure"] == 0.9
+
+
 if __name__ == "__main__":
   sys.exit(pytest.main([__file__, "-p", "no:cacheprovider"]))

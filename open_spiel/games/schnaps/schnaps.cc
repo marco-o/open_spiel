@@ -451,12 +451,15 @@ bool SchnapsState::CheckGameEnd(bool after_trick) {
       }
       return false;
     case kSchnapser: {
+      // The declarer's partnership must win each of the first three tricks
+      // and reach 66 by then: a trick won by the other side ends it at once.
       const int t = TeamOf(declarer_);
       if (team_score_[t] >= 66) {
         FinishGame(t, kContractPoints[kSchnapser]);
         return true;
       }
-      if (after_trick && tricks_played_ == 3) {
+      if (after_trick &&
+          (TeamOf(last_trick_winner_) != t || tricks_played_ == 3)) {
         FinishGame(1 - t, kContractPoints[kSchnapser]);
         return true;
       }

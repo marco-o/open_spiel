@@ -77,6 +77,25 @@ void NormalGameAndFollowTest() {
   SPIEL_CHECK_EQ(state->LegalActions().size(), 5);
 }
 
+void SchnapserLostOnTheFirstDefenderTrickTest() {
+  std::unique_ptr<State> state = DealSortedHands();
+  // P1 (all caro, no trump) calls Schnapser; everybody else passes.
+  state->ApplyAction(kPassAction);
+  state->ApplyAction(kFirstCallAction + kSchnapser - 1);
+  for (int i = 0; i < 3; ++i) state->ApplyAction(kPassAction);
+  SPIEL_CHECK_EQ(state->CurrentPlayer(), 0);
+  state->ApplyAction(0);   // P0 leads the trump Unter
+  state->ApplyAction(5);   // P1: Caro Unter
+  state->ApplyAction(10);  // P2: Pik Unter
+  SPIEL_CHECK_FALSE(state->IsTerminal());
+  state->ApplyAction(15);  // P3: Kreuz Unter; P0 takes the trick
+  // A defender won a trick: the Schnapser has failed, the deal is over.
+  SPIEL_CHECK_TRUE(state->IsTerminal());
+  const std::vector<double> returns = state->Returns();
+  SPIEL_CHECK_EQ(returns[0], 6.0);
+  SPIEL_CHECK_EQ(returns[1], -6.0);
+}
+
 }  // namespace
 }  // namespace schnaps
 }  // namespace open_spiel
@@ -85,4 +104,5 @@ int main(int argc, char** argv) {
   open_spiel::schnaps::BasicSchnapsTests();
   open_spiel::schnaps::HermortTest();
   open_spiel::schnaps::NormalGameAndFollowTest();
+  open_spiel::schnaps::SchnapserLostOnTheFirstDefenderTrickTest();
 }

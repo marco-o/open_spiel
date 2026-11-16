@@ -94,7 +94,7 @@ NUM_PLAYERS = schnaps.NUM_PLAYERS
 OPTIONS = {"max_flecks": schnaps.DEFAULT_MAX_FLECKS}
 assert tuple(OPTIONS) == schnaps.PARAMS
 RULES = {
-    "schema": "schnaps-rules/1",
+    "schema": "schnaps-rules/2",
     "engine": "open_spiel schnaps (games/schnaps/schnaps.cc)",
     "game": "schnaps",
     "scoring": (

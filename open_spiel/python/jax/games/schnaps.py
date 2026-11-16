@@ -45,8 +45,9 @@ partnership has taken a trick.
 
 Scoring. Normal: the first team to 66 points (or the last trick's winner)
 scores 3 if the losers took no trick, 2 if they have under 33 points, else 1.
-Schnapser (6): the declarer's team reaches 66 within three tricks. Lomt (9)
-and Bauern (12): the declarer takes every trick. Jodler 18, Hermort 24. The
+Schnapser (6): the declarer's team wins each of the first three tricks and
+reaches 66 by then (a trick won by the other side ends it). Lomt (9) and
+Bauern (12): the declarer takes every trick. Jodler 18, Hermort 24. The
 score doubles per fleck; returns are zero-sum, the winners' score for both
 winners and its negative for the losers.
 
@@ -551,7 +552,8 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
     # Normal: the first team to 66, else the last trick's winner.
     normal_w = jnp.where(reached[0], 0, 1)
     normal_end = reached.any()
-    # Schnapser: the declarer's team reaches 66 within three tricks.
+    # Schnapser: the declarer's team wins each of the first three tricks
+    # and reaches 66 by then.
     schnapser_end = reached[side]
     schnapser_w = side
     if after_trick:
@@ -559,7 +561,12 @@ class Schnaps(game_lib.Game, interop.PyspielInterop):
       normal_w = jnp.where(normal_end, normal_w, last_team)
       normal_end = normal_end | (tricks_played == NUM_TRICKS)
       schnapser_w = jnp.where(schnapser_end, side, 1 - side)
-      schnapser_end = schnapser_end | (tricks_played == 3)
+      # A trick won by the other side ends it, as does the third trick.
+      schnapser_end = (
+          schnapser_end
+          | (tricks_played == 3)
+          | (_i32(last_winner) % 2 != side)
+      )
       # Lomt and Bauern: the declarer takes every trick.
       lost = _i32(last_winner) != _i32(s.declarer)
       all_end = lost | (tricks_played == NUM_TRICKS)

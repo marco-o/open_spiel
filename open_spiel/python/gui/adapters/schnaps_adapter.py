@@ -26,6 +26,8 @@ The view is the record the `schnaps` client renderer reads:
 - `contract`: `{"name", "declarer", "flecks"}` once bidding starts, else None.
 - `trick`: the cards of the trick in play, each `{"seat", "card"}`.
 - `lastTrick`: `{"cards", "winner"}` for the last finished trick, or None.
+- `declarations`: every 20 or 40 declared, in order: `{"seat", "suit",
+  "points", "trick"}` (the trick it led, from 0).
 - `score` and `tricks`: the card points and tricks of each team.
 - `toMove`: the seat to act, or None.
 
@@ -210,6 +212,32 @@ def _last_trick(state: pyspiel.State, parsed: _Parsed) -> Json:
   }
 
 
+def _declarations(state: pyspiel.State, parsed: _Parsed) -> list[Json]:
+  """Every 20 or 40 declared so far, in order.
+
+  Each is {"seat", "suit" (a client suit code), "points" (40 in trump, else
+  20), "trick" (the trick it led, from 0)}. Declarations are public.
+  """
+  out: list[Json] = []
+  cards_played = 0
+  for item in state.full_history():
+    if item.player < 0:
+      continue
+    if item.action < _NUM_CARDS:
+      cards_played += 1
+    elif item.action < _FIRST_TRUMP:
+      card = _declared_card(item.action)
+      suit = card // _NUM_RANKS
+      out.append({
+          "seat": int(item.player),
+          "suit": _CLIENT_SUITS[suit],
+          "points": 40 if suit == parsed.trump else 20,
+          "trick": cards_played // _NUM_SEATS,
+      })
+      cards_played += 1
+  return out
+
+
 def _action_text(state: pyspiel.State, action: int) -> str:
   """A legal action, as a button or a history row names it."""
   if action < _NUM_CARDS:
@@ -268,6 +296,7 @@ class SchnapsAdapter(adapter.Adapter):
             for seat, card in parsed.trick
         ],
         "lastTrick": _last_trick(state, parsed),
+        "declarations": _declarations(state, parsed),
         "score": list(parsed.score),
         "tricks": list(parsed.tricks),
         "toMove": int(player) if 0 <= player < _NUM_SEATS else None,

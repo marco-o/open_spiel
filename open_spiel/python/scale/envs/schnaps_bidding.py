@@ -44,11 +44,13 @@ first:
    * "greedy": the legal bid of highest value; a call or a fleck must beat
      passing by `margin` points.
    * "pass": always pass (the Normal-only baseline).
+  * "set_aware": greedy on the points that count for the set, flecking only
+    when it cannot cost the set or the bot is very sure (SetAwareRule).
 
 The set situation. `set_context(info)` reads an InfoState key "set_need"
 (i32[B, 2], points each partnership still needs, seats 0/2 first) when an
-env provides it, else marks the context unknown. No env provides it yet;
-the rules here ignore it.
+env provides it, else marks the context unknown. The schnaps-web site
+provides it; the "set_aware" rule uses it.
 
 Simplifications: the estimate is myopic (it ignores later calls and flecks
 by the others), and the contract networks never saw overcalls or flecks in
@@ -244,8 +246,79 @@ class PassRule:
     return jnp.full(ctx.legal.shape[:1], PASS, jnp.int32)
 
 
+class SetAwareRule:
+  """Greedy on the points that count for the set, with a cautious fleck.
+
+  With the set situation known, a bid's outcomes are valued by the points
+  that still matter: a contract won is worth min(stake, our_need) to us,
+  one lost costs min(stake, their_need); a Normal game's value is clipped to
+  [-their_need, our_need]. Without it, the plain estimates are used.
+
+  A fleck (on the other side's contract, or back on ours) is allowed only
+  when
+    * it cannot cost the set: the side we bet against needs no more points
+      than the contract is already worth, so it wins the set either way; or
+    * our side is at least `fleck_sure` likely to win the contract.
+  A fleck on the Normal game needs an expected `normal_fleck_min` points.
+  The estimates of a contract seen from the defence are less reliable (the
+  contract networks never saw the hands people actually call), hence the
+  caution. Calls must beat passing by `margin` points; ties go to pass.
+
+  Attributes:
+    name: "set_aware".
+  """
+
+  name = "set_aware"
+
+  def __init__(
+      self,
+      fleck_sure: float = 0.75,
+      normal_fleck_min: float = 1.5,
+      margin: float = 0.0,
+  ):
+    self.fleck_sure = float(fleck_sure)
+    self.normal_fleck_min = float(normal_fleck_min)
+    self.margin = float(margin)
+
+  def kwargs(self) -> dict[str, Any]:
+    return {
+        "fleck_sure": self.fleck_sure,
+        "normal_fleck_min": self.normal_fleck_min,
+        "margin": self.margin,
+    }
+
+  def choose(self, ctx: BidContext, key: jax.Array) -> jax.Array:
+    del key
+    est, s = ctx.estimates, ctx.set
+    acts = jnp.arange(NUM_ACTIONS)
+    our = s.our_need.astype(jnp.float32)[:, None]
+    their = s.their_need.astype(jnp.float32)[:, None]
+    stake = est.stake
+    # Our side's chance of winning each bid's contract.
+    q = jnp.where(est.my_side_declares, est.p_success, 1.0 - est.p_success)
+    contract_value = q * jnp.minimum(stake, our) - (1.0 - q) * jnp.minimum(
+        stake, their
+    )
+    normal_value = jnp.clip(est.value, -their, our)
+    set_value = jnp.where(stake > 0, contract_value, normal_value)
+    value = jnp.where(s.known[:, None], set_value, est.value)
+    # The fleck's conditions, on the contract standing now (the pass entry).
+    stake_now = stake[:, PASS]
+    q_now = q[:, PASS]
+    called = stake_now > 0
+    set_free = s.known & called & (s.their_need <= stake_now)
+    sure = called & (q_now >= self.fleck_sure)
+    normal_ok = ~called & (est.value[:, PASS] >= self.normal_fleck_min)
+    fleck_ok = set_free | sure | normal_ok
+    allowed = _bid_mask(ctx.legal) & ((acts != FLECK) | fleck_ok[:, None])
+    score = value - jnp.where(acts > FLECK, self.margin, 0.0)
+    score = jnp.where(allowed, score, -jnp.inf)
+    return jnp.argmax(score, axis=-1).astype(jnp.int32)
+
+
 register_rule("greedy", GreedyRule)
 register_rule("pass", PassRule)
+register_rule("set_aware", SetAwareRule)
 
 
 def set_context(info: Mapping[str, jax.Array]) -> SetContext:

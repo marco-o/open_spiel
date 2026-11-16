@@ -36,6 +36,11 @@
 //   normal_only (bool, default false): the bidding allows only passes, so
 //                                every deal is a Normal game.
 //
+// Contracts: Schnapser (6) - the declarer's partnership wins each of the
+// first three tricks and reaches 66 by then (a trick won by the other side
+// ends it); Lomt (9, no trump) and Bauern (12) - the declarer wins every
+// trick; Jodler (18) and Hermort (24) win at once.
+//
 // Returns are zero-sum: the winning partnership gets +value, the other -value,
 // where value = contract_points * 2^flecks.
 //
