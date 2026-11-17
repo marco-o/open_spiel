@@ -107,21 +107,25 @@ def policy_kwargs(contract: str) -> dict[str, object]:
   )
 
 
-def learner():
-  """The CPU learner with its schedules continued from INIT_STEP.
+def learner(offset: int = INIT_STEP, num_updates: int = NUM_UPDATES):
+  """The CPU learner with its schedules continued from update `offset`.
+
+  Args:
+    offset: the update the schedules continue from.
+    num_updates: the run's updates.
 
   Returns:
     The pg.PGConfig.
   """
   return recipes.ppo_magnet_config(
-      num_updates=NUM_UPDATES,
+      num_updates=num_updates,
       sgd_steps=cpu.SGD_STEPS,
       value_scale=full.VALUE_SCALE,
       minibatch_size=cpu.MINIBATCH,
       forward_chunk_rows=cpu.FORWARD_CHUNK,
       value_rows=full.VALUE_ROWS,
       max_decision_share=full.MAX_DECISION_SHARE,
-      schedule_step_offset=INIT_STEP,
+      schedule_step_offset=offset,
       loss_config=ppo_magnet.PPOMagnetConfig(
           temperature_floor=cpu.TEMPERATURE_FLOOR
       ),
@@ -175,5 +179,55 @@ def config(contract: str) -> runner.LeagueRunConfig:
           f"schnaps card play with {contract} forced, fine-tuned from the "
           f"Normal-only network at step {INIT_STEP}; in-run evals are "
           "TRACKING tier"
+      ),
+  )
+
+
+#: Round 2 (Schnapser after its rule change): fine-tune a forced network
+#: further, from its own round-1 checkpoint.
+ROUND2_UPDATES = 500
+
+
+def round1_artifact(contract: str) -> str:
+  """The round-1 network of `contract`: ~/schnaps_forced_<contract>@1000."""
+  env_name(contract)
+  return f"{os.path.expanduser('~')}/schnaps_forced_{contract}@{NUM_UPDATES}"
+
+
+def config_round2(contract: str) -> runner.LeagueRunConfig:
+  """A second fine-tune of `contract` from its round-1 network.
+
+  Made for Schnapser after its rule became "win each of the first three
+  tricks" (games/schnaps): the round-1 network learned the old rule (66
+  within three tricks), so its play and value head are off. The run warm
+  starts from round1_artifact (the same env and spec), continues the
+  schedules from update INIT_STEP + NUM_UPDATES, and trains ROUND2_UPDATES
+  updates on the current hand weights (envs/schnaps_forced_hands.json).
+
+  Args:
+    contract: the contract.
+
+  Returns:
+    The runner.LeagueRunConfig.
+  """
+  init = round1_artifact(contract)
+  return recipes.ppo_magnet_self_play(
+      f"{config_name(contract)[: -len('_cpu')]}_r2_cpu",
+      env_name(contract),
+      learner(INIT_STEP + NUM_UPDATES, ROUND2_UPDATES),
+      policy_kwargs(contract),
+      num_envs=cpu.NUM_ENVS,
+      num_steps=cpu.NUM_STEPS,
+      num_updates=ROUND2_UPDATES,
+      seed=full.SEED + 1,
+      keep_every=cpu.KEEP_EVERY,
+      env_kwargs={},
+      init=refs.PolicyRef(artifact=init),
+      parents=(init,),
+      eval=evals(contract),
+      notes=(
+          f"schnaps card play with {contract} forced, round 2: fine-tuned "
+          f"from its round-1 network ({init}) under the current rules; "
+          "in-run evals are TRACKING tier"
       ),
   )

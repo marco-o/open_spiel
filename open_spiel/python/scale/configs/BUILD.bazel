@@ -534,6 +534,7 @@ py_library(
         "schnaps_forced_cpu.py",
         "schnaps_forced_lomt_cpu.py",
         "schnaps_forced_schnapser_cpu.py",
+        "schnaps_forced_schnapser_r2_cpu.py",
     ],
     strict_deps = True,
     deps = [

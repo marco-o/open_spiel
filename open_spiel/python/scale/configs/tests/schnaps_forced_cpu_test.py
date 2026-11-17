@@ -100,5 +100,27 @@ def test_relabel_makes_a_warm_start_of_the_learners_spec(tmp_path):
   assert relabel.relabel("lomt", src, 4000, dst) == dst
 
 
+def test_round2_continues_from_the_round1_network():
+  cfg = common.load_config("schnaps_forced_schnapser_r2_cpu")
+  assert cfg == forced.config_round2("schnapser")
+  first = forced.config("schnapser")
+  assert cfg.env == first.env == "schnaps_forced_schnapser"
+  assert dict(cfg.policy_kwargs) == dict(first.policy_kwargs)
+  assert cfg.run_updates() == forced.ROUND2_UPDATES
+  assert cfg.learner.init == refs.PolicyRef(
+      artifact=forced.round1_artifact("schnapser")
+  )
+  assert forced.round1_artifact("schnapser").endswith(
+      "schnaps_forced_schnapser@1000"
+  )
+  learner = cfg.learner.learner
+  assert learner.schedule_step_offset == forced.INIT_STEP + forced.NUM_UPDATES
+  assert dataclasses.replace(
+      learner,
+      schedule_step_offset=forced.INIT_STEP,
+      num_updates=forced.NUM_UPDATES,
+  ) == first.learner.learner
+
+
 if __name__ == "__main__":
   sys.exit(pytest.main([__file__, "-p", "no:cacheprovider"]))

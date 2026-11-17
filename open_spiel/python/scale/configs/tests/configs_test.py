@@ -50,6 +50,7 @@ SHIPPED = {
     "schnaps_forced_schnapser_cpu": ("pg", "schnaps_forced_schnapser"),
     "schnaps_forced_lomt_cpu": ("pg", "schnaps_forced_lomt"),
     "schnaps_forced_bauern_cpu": ("pg", "schnaps_forced_bauern"),
+    "schnaps_forced_schnapser_r2_cpu": ("pg", "schnaps_forced_schnapser"),
 }
 
 #: Shipped configs whose metadata records the rules get_config checked.
