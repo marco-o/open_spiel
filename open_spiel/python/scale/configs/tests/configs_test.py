@@ -48,6 +48,7 @@ SHIPPED = {
     "schnaps_move_transformer_cpu": ("pg", "schnaps"),
     "schnaps_normal_cpu": ("pg", "schnaps_normal"),
     "schnaps_normal_gpu": ("pg", "schnaps_normal"),
+    "schnaps_normal_heads_gpu": ("pg", "schnaps_normal"),
     "schnaps_forced_schnapser_cpu": ("pg", "schnaps_forced_schnapser"),
     "schnaps_forced_lomt_cpu": ("pg", "schnaps_forced_lomt"),
     "schnaps_forced_bauern_cpu": ("pg", "schnaps_forced_bauern"),

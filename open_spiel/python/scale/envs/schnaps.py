@@ -58,7 +58,8 @@ That is what OpenSpiel's information-state string holds (the trump choice,
 every bid and every card played are public, the deal is not), and the
 encoder ``schnaps_info_state`` (encoders.schnaps) rebuilds the games
 package's tensor from it bit for bit. The other hands are never in it.
-``labels`` carries the deal (``deal_holder``, the seat dealt each card).
+``labels`` carries the deal (``deal_holder``, the seat dealt each card, and
+``holder_rel``, that seat relative to the perspective seat).
 Every player action is public. ``world_from_info`` is None;
 ``hide_hidden_cards`` is the privacy hook.
 
@@ -260,13 +261,24 @@ class SchnapsEnv(jax_game_env.JaxGameEnv):
 
     Args:
       s: The state.
-      seat: Unused (the labels are the same for every seat).
+      seat: The perspective seat (`holder_rel` is relative to it).
 
     Returns:
-      {"deal_holder": int8[20]}, the seat dealt each card (-1 while undealt).
+      {"deal_holder": int8[20], the seat dealt each card (-1 while undealt);
+      "holder_rel": int8[20], that seat relative to `seat`, (holder - seat)
+      mod 4: 0 itself, 2 its partner, 1 and 3 the opponents (-1 while
+      undealt)}.
     """
-    del seat
-    return {"deal_holder": s.holder.astype(jnp.int8)}
+    holder = s.holder.astype(jnp.int32)
+    rel = jnp.where(
+        holder >= 0,
+        jnp.mod(holder - jnp.asarray(seat, jnp.int32), NUM_PLAYERS),
+        -1,
+    )
+    return {
+        "deal_holder": s.holder.astype(jnp.int8),
+        "holder_rel": rel.astype(jnp.int8),
+    }
 
 
 class SchnapsNormalEnv(SchnapsEnv):

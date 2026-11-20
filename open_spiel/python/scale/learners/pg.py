@@ -157,6 +157,28 @@ applied teacher_coef and teacher_top1 (the share of trained rows where the
 learner's and the teacher's top legal action agree). With no teacher every
 traced program is the one without the option (bit for bit).
 
+Aux heads (PGConfig.aux; off by default). Each AuxTarget trains the network
+aux head of its name (actor_critic "aux_heads") next to the loss, on the
+rows any loss term trains (decisions, plus value rows), adding coef x its
+mean loss and reporting aux/<name> (the loss) and aux/<name>_acc (top-1
+accuracy). Kinds:
+  token_class   one class per token: the head emits [..., K, C] logits and
+                the batch label `label` (TrajectoryBatch.labels, e.g. a
+                card game's holder of each card) is int[..., K], -1 where a
+                token has no class; a row's loss is the mean softmax cross
+                entropy over its labelled tokens (rows with none are left
+                out).
+  final_score   the hand's final score: the head emits [..., C] logits over
+                the integer scores score_min .. score_min + C - 1 and the
+                label is the perspective seat's raw return (no value_scale)
+                from the ply to its hand's end, rounded and clipped into that
+                range; rows whose hand does not end inside the batch segment
+                are left out. Its softmax is the distribution of the hand's
+                score (win probability, capped values), not a TD estimate.
+They change no other term: with aux=() every traced program is the one
+without the option, and the field is left out of the config hash
+(core.hash_compat.added).
+
 x64. Asserted at init and update. Counters (update_step) are int64; params
 stay float32 (asserted), every loss input is float32, and the step size is
 cast to the param dtype, so nothing promotes to float64.
@@ -293,6 +315,145 @@ class LossCounts(NamedTuple):
 
   policy: jax.Array
   value: jax.Array
+
+
+#: AuxTarget.kind values (module doc "Aux heads").
+AUX_KINDS = ("token_class", "final_score")
+
+
+@dataclasses.dataclass(frozen=True)
+class AuxTarget:
+  """One aux head the learner trains (module doc "Aux heads").
+
+  Attributes:
+    name: the network's aux head key.
+    kind: one of AUX_KINDS.
+    coef: the weight of its mean loss in the total.
+    label: token_class: the TrajectoryBatch.labels key of its classes.
+    score_min: final_score: the score of the head's class 0.
+  """
+
+  name: str
+  kind: str
+  coef: float = 1.0
+  label: str = ""
+  score_min: int = 0
+
+  def __post_init__(self):
+    if not (isinstance(self.name, str) and self.name.isidentifier()):
+      raise ValueError(f"AuxTarget.name must be an identifier: {self.name!r}")
+    if self.kind not in AUX_KINDS:
+      raise ValueError(
+          f"AuxTarget {self.name!r}: kind must be one of {AUX_KINDS}, got "
+          f"{self.kind!r}"
+      )
+    c = float(self.coef)
+    if not (math.isfinite(c) and c >= 0.0):
+      raise ValueError(f"AuxTarget {self.name!r}: coef={self.coef}")
+    if (self.kind == "token_class") != bool(self.label):
+      raise ValueError(
+          f"AuxTarget {self.name!r}: a label key is token_class's, and "
+          "token_class needs one"
+      )
+    if isinstance(self.score_min, bool) or not isinstance(self.score_min, int):
+      raise ValueError(
+          f"AuxTarget {self.name!r}: score_min must be an int, got "
+          f"{self.score_min!r}"
+      )
+
+
+def hand_returns(
+    reward: jax.Array, done: jax.Array
+) -> tuple[jax.Array, jax.Array]:
+  """Each ply's return to its hand's end, and whether the hand ends in view.
+
+  Args:
+    reward: f32[B, T], the seat's reward for the transition out of each ply.
+    done: bool[B, T], plies whose action ended the hand.
+
+  Returns:
+    (f32[B, T] the sum of the rewards from the ply through its hand's last
+    ply, bool[B, T] True where that last ply is inside the segment).
+  """
+  assert reward.shape == done.shape and reward.ndim == 2, (
+      reward.shape,
+      done.shape,
+  )
+
+  def step(c, x):
+    g, ends = c
+    r, d = x
+    g = r + jnp.where(d, F32(0.0), g)
+    ends = d | ends
+    return (g, ends), (g, ends)
+
+  b = reward.shape[0]
+  init = (jnp.zeros((b,), F32), jnp.zeros((b,), jnp.bool_))
+  xs = (jnp.swapaxes(reward.astype(F32), 0, 1), jnp.swapaxes(done, 0, 1))
+  _, (g, ends) = jax.lax.scan(step, init, xs, reverse=True)
+  return jnp.swapaxes(g, 0, 1), jnp.swapaxes(ends, 0, 1)
+
+
+def aux_label_rows(kind: str, label: jax.Array) -> jax.Array:
+  """bool[...]: the rows an aux label gives a class (aux_rows_loss's `has`).
+
+  Args:
+    kind: one of AUX_KINDS.
+    label: the rows' labels (aux_rows_loss).
+
+  Returns:
+    token_class: rows with at least one labelled token; final_score: every
+    row (its hand's end is checked apart).
+  """
+  lab = jnp.asarray(label)
+  if kind == "token_class":
+    return jnp.any(lab >= 0, axis=-1)
+  if kind == "final_score":
+    return jnp.ones(lab.shape, jnp.bool_)
+  raise ValueError(f"unknown aux kind {kind!r}; want one of {AUX_KINDS}")
+
+
+def aux_rows_loss(
+    kind: str, pred: jax.Array, label: jax.Array, score_min: int = 0
+) -> tuple[jax.Array, jax.Array, jax.Array]:
+  """One aux head's per-row loss (module doc "Aux heads").
+
+  Args:
+    kind: one of AUX_KINDS.
+    pred: the head's logits, [..., K, C] (token_class) or [..., C].
+    label: int [..., K] classes, -1 for none (token_class), or int [...]
+      rounded scores (final_score).
+    score_min: final_score: the score of class 0.
+
+  Returns:
+    (loss f32[...], top-1 accuracy f32[...], has bool[...]: rows with a
+    label).
+  """
+  pred = pred.astype(F32)
+  lp = jax.nn.log_softmax(pred, axis=-1)
+  if kind == "token_class":
+    lab = jnp.asarray(label).astype(jnp.int32)
+    assert lab.shape == pred.shape[:-1], (lab.shape, pred.shape)
+    w = lab >= 0
+    safe = jnp.maximum(lab, 0)
+    ce = -jnp.take_along_axis(lp, safe[..., None], axis=-1)[..., 0]
+    hit = (jnp.argmax(pred, axis=-1) == safe).astype(F32)
+    n = jnp.sum(w, axis=-1).astype(F32)
+    den = jnp.maximum(n, F32(1.0))
+    wf = w.astype(F32)
+    return (
+        jnp.sum(ce * wf, axis=-1) / den,
+        jnp.sum(hit * wf, axis=-1) / den,
+        n > 0,
+    )
+  if kind == "final_score":
+    lab = jnp.asarray(label).astype(jnp.int32)
+    assert lab.shape == pred.shape[:-1], (lab.shape, pred.shape)
+    cls = jnp.clip(lab - jnp.int32(score_min), 0, pred.shape[-1] - 1)
+    ce = -jnp.take_along_axis(lp, cls[..., None], axis=-1)[..., 0]
+    hit = (jnp.argmax(pred, axis=-1) == cls).astype(F32)
+    return ce, hit, jnp.ones(lab.shape, jnp.bool_)
+  raise ValueError(f"unknown aux kind {kind!r}; want one of {AUX_KINDS}")
 
 
 _EXTENSION_LOSSES: dict[str, LossSpec] = {}
@@ -513,8 +674,20 @@ class PGConfig:
   # Teacher distillation (module doc): off at its default, so left out of the
   # config hash there (core.hash_compat.added).
   teacher_coef: schedules.Schedule = hash_compat.added(TEACHER_COEF_OFF)
+  # Aux heads (module doc): off at their default (), so left out of the
+  # config hash there (core.hash_compat.added).
+  aux: tuple[AuxTarget, ...] = hash_compat.added(())
 
   def __post_init__(self):
+    if not isinstance(self.aux, tuple) or not all(
+        isinstance(t, AuxTarget) for t in self.aux
+    ):
+      raise ValueError(
+          f"PGConfig.aux is a tuple of AuxTarget, got {self.aux!r}"
+      )
+    aux_names = [t.name for t in self.aux]
+    if len(set(aux_names)) != len(aux_names):
+      raise ValueError(f"PGConfig.aux names repeat: {aux_names}")
     if self.credit not in CREDITS:
       raise ValueError(
           f"PGConfig.credit must be one of {CREDITS}, got {self.credit!r}"
@@ -1903,7 +2076,13 @@ class PGLearner:
         out.append(np.stack([i[r] % b, i[r] // b], axis=1).astype(np.int64))
     return out
 
-  def forward(self, params: Any, carry: Any, steps: types.SeatStep):
+  def forward(
+      self,
+      params: Any,
+      carry: Any,
+      steps: types.SeatStep,
+      with_aux: bool = False,
+  ):
     """The learner's forward of the policy over SeatSteps.
 
     Args:
@@ -1911,9 +2090,11 @@ class PGLearner:
       carry: the rows' init_carry ([Bm, T] steps only).
       steps: SeatSteps [N] (flat; stateless policies; `carry` is ignored and a
         fresh carry is used) or [Bm, T] (evaluate_seq from `carry`).
+      with_aux: also return the policy's aux outputs.
 
     Returns:
-      (logits f32[..., A], seat value f32[...], value_logits or None).
+      (logits f32[..., A], seat value f32[...], value_logits or None), plus
+      the aux dict last when `with_aux`.
 
     Raises:
       ValueError: steps of another rank, or [N] steps for a stateful policy.
@@ -1954,6 +2135,8 @@ class PGLearner:
     value = jnp.take_along_axis(
         out.value, seat[..., None].astype(jnp.int32), axis=-1
     )[..., 0]
+    if with_aux:
+      return out.logits, value, out.aux.get("value_logits"), out.aux
     return out.logits, value, out.aux.get("value_logits")
 
   def _chunked(self, fn, *trees, chunk: Optional[int] = None):
@@ -2217,6 +2400,28 @@ class PGLearner:
     # the magnet's logits (PGConfig.magnet_from_behavior)
     if self.cfg.magnet_from_behavior:
       rows["magnet_logits"] = batch.behavior_logits
+    if self.cfg.aux:  # module doc "Aux heads"
+      labels, has = {}, {}
+      returns = None
+      for t in self.cfg.aux:
+        if t.kind == "token_class":
+          if t.label not in batch.labels:
+            raise ValueError(
+                f"aux {t.name!r}: the batch has no label {t.label!r} (it has "
+                f"{sorted(batch.labels)})"
+            )
+          lab = jnp.asarray(batch.labels[t.label])
+          assert lab.shape[:2] == valid.shape, (lab.shape, valid.shape)
+          labels[t.name] = lab
+          has[t.name] = jnp.any(lab >= 0, axis=tuple(range(2, lab.ndim)))
+        else:
+          if returns is None:
+            returns = hand_returns(batch.reward, batch.done)
+          g, ends = returns
+          labels[t.name] = jnp.round(g).astype(jnp.int32)
+          has[t.name] = ends
+      rows["aux_labels"] = labels
+      rows["aux_has"] = has
     return rows
 
   @staticmethod
@@ -2518,6 +2723,7 @@ class PGLearner:
       counts: Optional[dict[str, Any]] = None,
       step_coefs: Optional[dict[str, Any]] = None,
       teacher_coef: Optional[jax.Array] = None,
+      aux_counts: Optional[dict[str, Any]] = None,
   ):
     """(total, metrics) of a minibatch, or of one chunk of its rows.
 
@@ -2544,6 +2750,8 @@ class PGLearner:
         step_coefs), or None.
       teacher_coef: c(t) of the teacher KL (module doc "Teacher
         distillation"; mb then holds "teacher_probs"), or None (no teacher).
+      aux_counts: the whole minibatch's row count of each aux head (one chunk
+        of the rows; module doc "Aux heads"), or None (the chunk's own).
 
     Returns:
       (total, metrics).
@@ -2553,7 +2761,13 @@ class PGLearner:
     legal = steps.legal_mask
     valid = mb["valid"]
     action = mb["action"]
-    logits, value, value_logits = self.forward(params, carry, steps)
+    aux_out = None
+    if cfg.aux:
+      logits, value, value_logits, aux_out = self.forward(
+          params, carry, steps, with_aux=True
+      )
+    else:
+      logits, value, value_logits = self.forward(params, carry, steps)
     stable = cfg.pg.stable_softmax
     logp = loss_lib.action_log_prob(logits, legal, action, stable=stable)
     log_ratio = logp - mb["behavior_logp"]
@@ -2640,6 +2854,26 @@ class PGLearner:
       m = dict(m)
       if cfg.loss == "ppo":
         del m["kl_penalty"], m["kl_coef_effective"]  # no magnet: not computed
+    if cfg.aux:  # module doc "Aux heads"
+      trained = self._trained(mb)
+      for t in cfg.aux:
+        if t.name not in aux_out:
+          raise ValueError(
+              f"aux {t.name!r}: the network has no aux head of that key (it "
+              f"has {sorted(aux_out)})"
+          )
+        per, acc, has = aux_rows_loss(
+            t.kind, aux_out[t.name], mb["aux_labels"][t.name], t.score_min
+        )
+        rows_m = trained & has & mb["aux_has"][t.name]
+        count = None if aux_counts is None else aux_counts[t.name]
+        la = loss_lib.masked_mean(per, rows_m, count)
+        total = total + F32(t.coef) * la
+        m[f"aux/{t.name}"] = loss_lib.f32(jax.lax.stop_gradient(la))
+        m[f"aux/{t.name}_acc"] = loss_lib.f32(
+            jax.lax.stop_gradient(loss_lib.masked_mean(acc, rows_m, count))
+        )
+      m["loss_total"] = total
     if teacher_coef is not None:  # teacher distillation (module doc)
       assert ext is None, f"loss {cfg.loss!r}: the teacher KL is pg_loss's"
       tp = jax.lax.stop_gradient(mb["teacher_probs"])
@@ -2689,13 +2923,16 @@ class PGLearner:
       The metric names.
     """
     ext = extension(self.cfg.loss)
+    aux = frozenset(
+        k for t in self.cfg.aux for k in (f"aux/{t.name}", f"aux/{t.name}_acc")
+    )
     if ext is None:
-      out = loss_lib.PG_CHUNK_SUMS | {"approx_kl"}
+      out = loss_lib.PG_CHUNK_SUMS | {"approx_kl"} | aux
       if self._teacher is not None:
         out |= {"teacher_kl", "teacher_top1"}
       return out
     assert ext.chunk_sums is not None, self.cfg.loss
-    out = ext.chunk_sums | {"loss_total", "approx_kl"}
+    out = ext.chunk_sums | {"loss_total", "approx_kl"} | aux
     if self._value_rows_fn is not None:
       out |= {"value_loss_decision", "value_loss_noop"}
     return out
@@ -2830,6 +3067,15 @@ class PGLearner:
         return jnp.sum(m, dtype=F32)
 
       counts = dict(policy=cnt(valid), value=cnt(vm), noop=cnt(vm & ~valid))
+    aux_counts = None
+    if cfg.aux:  # each head's rows over the whole minibatch (_loss reads them)
+      trained = self._trained(mb)
+      aux_counts = {}
+      for t in cfg.aux:
+        has = aux_label_rows(t.kind, mb["aux_labels"][t.name])
+        aux_counts[t.name] = jnp.sum(
+            trained & has & mb["aux_has"][t.name], dtype=F32
+        )
     num, c = actor_critic.chunk_plan(n, int(cfg.forward_chunk_rows))
     assert c <= cfg.forward_chunk_rows and num * c >= n, (
         n,
@@ -2884,6 +3130,8 @@ class PGLearner:
         st = stats._replace(adv=ch["adv"], actor_rows=ch["actor_rows"] & real)
       carry_c = ch["carry"] if not flat else carry
       kw = {} if teacher_coef is None else {"teacher_coef": teacher_coef}
+      if aux_counts is not None:
+        kw["aux_counts"] = aux_counts
       (_, m), g = jax.value_and_grad(
           functools.partial(self._loss, **kw), has_aux=True
       )(
