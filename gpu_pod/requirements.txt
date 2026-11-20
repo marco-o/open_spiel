@@ -1,0 +1,47 @@
+# The training venv on a GPU pod: the laptop venv's versions (2026-11-18),
+# without the web site's packages. jax and jaxlib come from pod_setup.sh,
+# which installs jax[cuda12] (or cuda13) at JAX_VERSION.
+absl-py==2.5.1
+attrs==26.1.0
+chex==0.1.92
+cloudpickle==3.1.2
+decorator==5.3.1
+distrax==0.1.9
+dm-env==1.6
+dm-haiku==0.0.17
+dm-tree==0.1.10
+etils==1.15.0
+flax==0.12.10
+fsspec==2026.9.0
+gast==0.7.0
+humanize==4.16.0
+iniconfig==2.3.1
+jmp==0.0.4
+mctx==0.0.71
+ml_collections==1.1.0
+ml_dtypes==0.6.0
+msgpack==1.2.4
+numpy==2.5.4
+opt_einsum==3.4.0
+optax==0.2.8
+orbax-checkpoint==0.12.8
+packaging==26.3
+pluggy==1.7.0
+protobuf==7.36.2
+psutil==7.2.2
+Pygments==2.21.0
+pytest==9.1.1
+PyYAML==6.0.3
+rich==15.0.0
+rlax==0.1.9
+scipy==1.18.1
+simplejson==4.2.0
+six==1.17.0
+tabulate==0.10.0
+tensorstore==0.1.86
+tfp-nightly==0.26.0.dev20261109
+toolz==1.2.0
+treescope==0.1.10
+typing_extensions==4.16.0
+wrapt==2.5.2
+zipp==4.1.2

@@ -570,6 +570,34 @@ pytest_test(
     ],
 )
 
+py_library(
+    name = "schnaps_normal_gpu",
+    srcs = ["schnaps_normal_gpu.py"],
+    strict_deps = True,
+    deps = [
+        ":recipes",
+        ":schnaps_move_transformer_cpu",
+        ":schnaps_move_transformer_self_play",
+        ":schnaps_normal_cpu",
+        "//open_spiel/python/scale/league:config_common",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_normal_gpu_test",
+    data = ["//open_spiel/python/scale:all_files"],
+    tests = ["tests/schnaps_normal_gpu_test.py"],
+    deps = [
+        ":schnaps_move_transformer_self_play",
+        ":schnaps_normal_cpu",
+        ":schnaps_normal_gpu",
+        "//open_spiel/python/scale:deps",
+        "//open_spiel/python/scale:registered",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/league:config_common",
+    ],
+)
+
 pytest_test(
     name = "schnaps_normal_cpu_test",
     data = ["//open_spiel/python/scale:all_files"],
