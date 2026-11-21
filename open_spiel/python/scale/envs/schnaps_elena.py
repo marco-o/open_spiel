@@ -477,3 +477,8 @@ def forced_evaluator(name: str):
 
 for _forced_name in FORCED_EVAL_NAMES.values():
   eval_registry.register(_forced_name, forced_evaluator(_forced_name))
+
+#: The Elena evaluation on the mixed env (envs.schnaps_mixed): Normal and
+#: forced deals in its mix, the same duplicate deals.
+MIXED_EVAL_NAME = "schnaps_mixed.elena"
+eval_registry.register(MIXED_EVAL_NAME, forced_evaluator(MIXED_EVAL_NAME))

@@ -1354,6 +1354,16 @@ BUILTIN = (
         )
         for c in ("schnapser", "lomt", "bauern")
     ),
+    # Schnaps with a mix of deals (envs.schnaps_mixed): Normal games (the
+    # Caller chooses trump) and forced Schnapser, Lomt and Bauern deals, for
+    # one network that plays every contract. No options; not served (it
+    # never bids).
+    GameSpec(
+        "schnaps_mixed",
+        f"{_ENVS}.schnaps_mixed:SchnapsMixedEnv",
+        extras=(f"{_ENVS}.schnaps_elena",),
+        reference_evals=("schnaps_mixed.elena",),
+    ),
     # N-player test games, self-contained JAX (no game package); not served.
     # Kuhn poker with `players` seats (OpenSpiel's kuhn_poker(players=N)),
     # 2..10; its own name, so it never shares artifacts with kuhn_poker.

@@ -1302,6 +1302,45 @@ pytest_test(
 )
 
 py_library(
+    name = "schnaps_mixed",
+    srcs = ["schnaps_mixed.py"],
+    strict_deps = True,
+    deps = [
+        ":jax_game_env",
+        ":schnaps",
+        ":schnaps_forced",
+        "//open_spiel/python/jax/games:game",
+        "//open_spiel/python/jax/games:schnaps",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+pytest_test(
+    name = "schnaps_mixed_test",
+    timeout = "long",
+    data = ["//open_spiel/python/scale:all_files"],
+    tags = [
+        "manual",
+    ],
+    tests = ["tests/schnaps_mixed_test.py"],
+    deps = [
+        ":registry",
+        ":schnaps_elena",
+        ":schnaps_forced",
+        ":schnaps_mixed",
+        "//open_spiel/python/scale:tests_conftest",
+        "//open_spiel/python/scale/core:types",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/eval:match",
+        "//open_spiel/python/scale/policies:uniform",
+        "//open_spiel/python/scale/testing:check_env",
+        "@py_deps//jax",
+        "@py_deps//numpy",
+    ],
+)
+
+py_library(
     name = "schnaps_bidding",
     srcs = ["schnaps_bidding.py"],
     strict_deps = True,

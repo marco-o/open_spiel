@@ -366,6 +366,20 @@ py_library(
 )
 
 py_library(
+    name = "schnaps_mixed_init",
+    srcs = ["schnaps_mixed_init.py"],
+    strict_deps = True,
+    deps = [
+        "//open_spiel/python/scale/ckpt:artifact",
+        "//open_spiel/python/scale/configs:schnaps_mixed_big_gpu",
+        "//open_spiel/python/scale/core:x64",
+        "//open_spiel/python/scale/envs:registry",
+        "//open_spiel/python/scale/league:refs",
+        "@py_deps//jax",
+    ],
+)
+
+py_library(
     name = "schnaps_build_player",
     srcs = ["schnaps_build_player.py"],
     strict_deps = True,

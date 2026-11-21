@@ -535,6 +535,8 @@ def test_the_other_tables_are_views_of_the_registry():
       "schnaps_forced_schnapser",
       "schnaps_forced_lomt",
       "schnaps_forced_bauern",
+      # The mixed Normal/forced env: its networks never bid either.
+      "schnaps_mixed",
   }
   assert set(games.served_games()) >= set(registry.builtin_names()) - unserved
   assert not unserved & set(games.served_games())
